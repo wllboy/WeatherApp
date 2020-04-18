@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/weatherCardView"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <RelativeLayout
+        android:background="@android:color/darker_gray"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <ImageView
+            android:id="@+id/weatherImage"
+            android:layout_width="90dp"
+            android:layout_height="100dp"
+            android:src="@drawable/weather"
+            />
+
+        <TextView
+            android:id="@+id/dateTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="01/01/01 12:00"
+            android:layout_toRightOf="@id/weatherImage"
+            android:textSize="25sp" />
+        />
+
+        <TextView
+            android:id="@+id/tempTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="25sp"
+            android:layout_below="@+id/dateTextView"
+            android:text="12 C"
+            android:layout_toRightOf="@id/weatherImage"
+            ></TextView>
+        <TextView
+            android:id="@+id/windTextView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="25sp"
+            android:layout_below="@id/tempTextView"
+            android:layout_toRightOf="@id/weatherImage"
+            android:text="@string/wind"
+            />
+    </RelativeLayout>
+</com.google.android.material.card.MaterialCardView>

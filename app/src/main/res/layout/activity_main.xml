@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/activityMain"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/white"
+    tools:context=".MainActivity">
+
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/colorPrimary"
+        android:elevation="4dp"
+        android:minHeight="?attr/actionBarSize"
+        android:paddingTop="@dimen/tool_bar_top_padding"
+        android:transitionName="actionBar" />
+
+    <TextView
+        android:id="@+id/cityNameTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/toolbar"
+        android:layout_alignParentLeft="true"
+        android:layout_marginLeft="100dp"
+        android:textSize="30sp"
+        android:textColor="@android:color/black"
+        android:layout_marginTop="20dp"
+        />
+
+    <EditText
+        android:id="@+id/cityEditText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="40dp"
+        android:layout_marginBottom="30dp"
+        android:layout_centerInParent="true"
+        android:layout_alignParentLeft="true"
+        android:hint="Введите город  "
+        android:textSize="30sp"
+        />
+
+    <TextView
+        android:id="@+id/feelsLikeTextView"
+        android:layout_below="@id/cityNameTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/weather"
+        android:textSize="30sp"
+        android:textColor="@android:color/black"
+        android:layout_alignParentLeft="true"
+        android:layout_marginLeft="50dp"
+        android:layout_alignParentTop="true"
+        android:layout_marginTop="150dp"
+        />
+
+    <TextView
+        android:id="@+id/celciumTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/feelsLikeTextView"
+        android:textSize="30sp"
+        android:layout_alignParentLeft="true"
+        android:layout_marginTop="10dp"
+        android:layout_marginLeft="50dp"
+        android:textColor="@android:color/black"
+        android:text="@string/celcium"
+        />
+
+    <TextView
+        android:id="@+id/windTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/celciumTextView"
+        android:layout_alignParentLeft="true"
+        android:textColor="@android:color/black"
+        android:layout_marginLeft="50dp"
+        android:textSize="30sp"
+        android:layout_marginTop="10dp"
+        android:text="@string/wind"
+        />
+
+    <ImageView
+        android:id="@+id/flagImageView"
+        android:layout_width="70dp"
+        android:layout_height="50dp"
+        android:layout_below="@id/toolbar"
+        android:layout_toRightOf="@id/cityNameTextView"
+        android:layout_marginLeft="25dp"
+        android:layout_marginTop="15dp"
+        />
+    <Button
+        android:id="@+id/enterButton"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:layout_toRightOf="@id/cityEditText"
+        android:layout_marginLeft="20dp"
+        android:layout_marginBottom="30dp"
+        android:layout_above="@id/forecastRecyclerView"
+        android:layout_centerInParent="true"
+        android:background="@drawable/ic_search_black_24dp"
+        />
+
+   <me.ibrahimsn.lib.SmoothBottomBar
+       android:id="@+id/bottomNavView"
+       android:layout_width="match_parent"
+       android:layout_height="50dp"
+       app:backgroundColor="@android:color/darker_gray"
+       app:indicatorColor="@color/colorAccent"
+       android:layout_alignParentBottom="true"
+       app:menu="@menu/nav_menu"
+       />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/forecastRecyclerView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/bottomNavView"
+        android:layout_below="@id/cityEditText"
+        android:layout_marginStart="8dp"
+        android:layout_marginLeft="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginRight="8dp"
+        android:layout_marginBottom="10dp"
+        android:background="@android:color/holo_blue_light"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+
+    <ProgressBar
+        android:id="@+id/progressBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:layout_below="@id/windTextView"
+        android:layout_marginTop="180dp"
+        />
+
+    <ListView
+        android:id="@+id/listView"
+        android:visibility="gone"
+        android:layout_width="match_parent"
+        android:layout_height="fill_parent"
+        />
+
+</RelativeLayout>

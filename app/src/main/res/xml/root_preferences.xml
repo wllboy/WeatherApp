@@ -1,0 +1,42 @@
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <PreferenceCategory
+        app:title="Внешний вид приложения"
+        >
+    </PreferenceCategory>
+
+    <SwitchPreference
+       app:key="theme"
+       android:summaryOn="Вкл."
+       android:summaryOff="Выкл."
+       app:title="Тёмная тема"
+       app:icon="@drawable/ic_brightness_4_black_24dp"
+       >
+    </SwitchPreference>
+
+    <PreferenceCategory
+        app:title="ИЛИ настройте внешний вид под себя"
+        >
+    </PreferenceCategory>
+
+    <CheckBoxPreference
+        app:key="personal_settings"
+        app:title="Настроить всё под себя"
+        />
+
+    <com.jaredrummler.android.colorpicker.ColorPreferenceCompat
+        app:key="background_color_picker"
+        app:title="Выберите цвет фона"
+        app:icon="@drawable/ic_color_lens_black_24dp"
+        app:defaultValue="0xFF888888"
+        ></com.jaredrummler.android.colorpicker.ColorPreferenceCompat>
+
+    <com.jaredrummler.android.colorpicker.ColorPreferenceCompat
+        app:key="menu_color_picker"
+        app:title="Выберите цвет нижнего меню"
+        app:icon="@drawable/ic_color_lens_black_24dp"
+        app:defaultValue="0xFF444444"
+        ></com.jaredrummler.android.colorpicker.ColorPreferenceCompat>
+
+</PreferenceScreen>
