@@ -7,11 +7,9 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import androidx.annotation.NonNull;
+
 import androidx.cardview.widget.CardView;
 import androidx.recyclerview.widget.RecyclerView;
-
-import com.google.android.material.circularreveal.cardview.CircularRevealCardView;
 
 import java.util.List;
 
@@ -48,7 +46,6 @@ public class WeatherAdapter extends RecyclerView.Adapter<WeatherAdapter.ViewHold
     @Override
     public void onBindViewHolder(WeatherAdapter.ViewHolder holder, int position) {
         Weather weather = weatherList.get(position);
-        holder.imageView.setImageResource(weather.getPic());
         holder.temp.setText(String.valueOf(weather.getTemp()) +  '°');
         holder.wind.setText(String.valueOf(weather.getWind()) + "м/с");
         holder.date.setText(weather.getDate());

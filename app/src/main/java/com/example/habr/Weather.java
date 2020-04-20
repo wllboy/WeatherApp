@@ -5,17 +5,17 @@ public class Weather {
     private String date;
     private int temp;
     private int wind;
-    private int pic;
+    private String imagePath;
 
     public Weather() {
 
     }
 
-    public Weather(String date, int temp, int wind, int pic) {
+    public Weather(String date, int temp, int wind, String imagePath) {
         this.date = date;
         this.temp = temp;
         this.wind = wind;
-        this.pic = pic;
+        this.imagePath = imagePath;
     }
 
     public String getDate() {
@@ -42,12 +42,11 @@ public class Weather {
         return wind;
     }
 
-
-    public int getPic() {
-        return pic;
+    public String getImagePath() {
+        return imagePath;
     }
 
-    public void setPic(int pic) {
-        this.pic = pic;
+    public void setImagePath(String imagePath) {
+        this.imagePath = imagePath;
     }
 }

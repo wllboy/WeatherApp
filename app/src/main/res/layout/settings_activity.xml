@@ -1,4 +1,5 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:background="@android:color/darker_gray"
     android:id="@+id/activitySettings"
     android:orientation="vertical"
@@ -22,4 +23,13 @@
         android:layout_below="@id/toolbar"
         />
 
+    <me.ibrahimsn.lib.SmoothBottomBar
+        android:id="@+id/bottomNavView"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        app:backgroundColor="@android:color/darker_gray"
+        app:indicatorColor="@color/colorAccent"
+        android:layout_alignParentBottom="true"
+        app:menu="@menu/nav_menu_with_back_buuton"
+        />
 </RelativeLayout>

@@ -2,8 +2,6 @@ package com.example.habr;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
-import androidx.core.app.NotificationCompat;
-import androidx.core.app.NotificationManagerCompat;
 import androidx.preference.PreferenceManager;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.RecyclerView;
@@ -17,12 +15,13 @@ import android.location.Geocoder;
 import android.location.Location;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -30,7 +29,10 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
+import com.balysv.materialripple.MaterialRippleLayout;
+import com.baoyz.widget.PullRefreshLayout;
 import com.bumptech.glide.Glide;
+import com.github.florent37.materialtextfield.MaterialTextField;
 import com.google.android.gms.location.FusedLocationProviderClient;
 
 import com.google.android.gms.location.LocationServices;
@@ -51,6 +53,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -67,23 +70,29 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String API_KEY = "da97f82748130a72c467aa50dfffcda7";
     private static final String firstPartOfUrl = "https://api.openweathermap.org/data/2.5/weather?q=";
-    private static final String secondPartOfUrl = "&appid=";
+    private static final String secondPartOfUrl = "&units=metric&appid=";
+    private static final String imageUrl = "https://openweathermap.org/img/wn/";
     private String country = "";
     RequestQueue mRequestQueue;
-    TextView tempTextView, windTextView, celsiusTextView, cityNameTextView;
-    EditText cityEditText;
-    ImageView countryImageView;
+    TextView tempTextView, windTextView, celsiusTextView, cityNameTextView, humidityTextView;
+    MaterialTextField cityEditText;
+    ImageView countryImageView, weatherStateImageView;
     Button enterButton;
     RecyclerView recyclerView;
     SmoothBottomBar navigationView;
     Toolbar toolbar;
     ProgressBar progressBar;
     public double temp = 0, windSpeed = 0, latitude = 0, longitude = 0;
+    private int humidity;
 
-    private String cityName = "";
+    private String cityName = "", imgUrlResult = "";
 
     private FusedLocationProviderClient fusedLocationClient;
     private List<Weather> weatherList;
+
+    private HashMap <String,String> weatherMap;
+
+    String weatherState = "";
 
     @Override
     protected void onResume() {
@@ -95,6 +104,12 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        weatherMap = new HashMap<>();
+        weatherMap.put("Clear", "Ясно");
+        weatherMap.put("Drizzle", "Изморось");
+        weatherMap.put("Clouds", "Облачно");
+        weatherMap.put("Rain", "Дождь");
 
         iniXml();
 
@@ -111,11 +126,11 @@ public class MainActivity extends AppCompatActivity {
         enterButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                String url = firstPartOfUrl + cityEditText.getText().toString().trim() + secondPartOfUrl + API_KEY;
+                String url = firstPartOfUrl + cityEditText.getEditText().getText().toString().trim() + secondPartOfUrl + API_KEY;
                 getWeather(url);
 
-                String curCity = cityEditText.getText().toString().trim();
-                getForecastOkHttp("https://api.openweathermap.org/data/2.5/forecast?q=" + curCity + "&appid=da97f82748130a72c467aa50dfffcda7");
+                String curCity = cityEditText.getEditText().getText().toString().trim();
+                getForecastOkHttp("https://api.openweathermap.org/data/2.5/forecast?q=" + curCity + "&units=metric&appid=da97f82748130a72c467aa50dfffcda7");
             }
         });
 
@@ -130,19 +145,13 @@ public class MainActivity extends AppCompatActivity {
                         startActivity(new Intent(MainActivity.this,SettingsActivity.class));
                         break;
                     case 2:
+                        cityEditText.callOnClick();
+                        cityEditText.getEditText().callOnClick();
+                        break;
                 }
             }
         });
 
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "id")
-                .setSmallIcon(R.drawable.ic_wb_sunny_black_24dp)
-                .setContentTitle("My notification")
-                .setContentText("Much longer text that cannot fit one line...")
-                .setStyle(new NotificationCompat.BigTextStyle()
-                        .bigText("Much longer text that cannot fit one line..."))
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT);
-        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
-        notificationManager.notify(1, builder.build());
     }
 
     private void getLocation() {
@@ -229,15 +238,17 @@ public class MainActivity extends AppCompatActivity {
 
     @SuppressLint("SetTextI18n")
     private void setValues() {
-        tempTextView.setText(getResources().getString(R.string.weather) + Math.round((temp)));
-        celsiusTextView.setText(getResources().getString(R.string.celcium) + Math.round((temp - 273.15)));
-        windTextView.setText(getResources().getString(R.string.wind) + windSpeed);
+        tempTextView.setText(weatherMap.get(weatherState));
+        celsiusTextView.setText("" + temp + " C°");
+        windTextView.setText("" + windSpeed + " м/с");
+        humidityTextView.setText("" + humidity + '%');
         String flagUrl = "https://www.countryflags.io/" + country.toLowerCase() + "/flat/64.png";
         Glide.with(getApplicationContext()).load(flagUrl).into(countryImageView);
-        if(cityEditText.getText().toString().trim().length() > 0) {
-            cityNameTextView.setText(cityEditText.getText().toString().trim());
+        Glide.with(getApplicationContext()).load(imgUrlResult).into(weatherStateImageView);
+        if(cityEditText.getEditText().getText().toString().trim().length() > 0) {
+            cityNameTextView.setText(cityEditText.getEditText().getText().toString().trim());
         }
-        cityEditText.getText().clear();
+        cityEditText.getEditText().setText("");
     }
 
     public String getLocationName(double latitude, double longitude) {
@@ -264,8 +275,10 @@ public class MainActivity extends AppCompatActivity {
         tempTextView = findViewById(R.id.feelsLikeTextView);
         celsiusTextView = findViewById(R.id.celciumTextView);
         windTextView = findViewById(R.id.windTextView);
+        humidityTextView = findViewById(R.id.humidityTextView);
         cityEditText = findViewById(R.id.cityEditText);
         countryImageView = findViewById(R.id.flagImageView);
+        weatherStateImageView = findViewById(R.id.weatherStateImageView);
         enterButton = findViewById(R.id.enterButton);
         navigationView = findViewById(R.id.bottomNavView);
         cityNameTextView = findViewById(R.id.cityNameTextView);
@@ -273,11 +286,12 @@ public class MainActivity extends AppCompatActivity {
 
         toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+        MaterialRippleLayout.on(enterButton).rippleColor(Color.RED).create();
     }
 
     private void startRecyclerView() {
         recyclerView = findViewById(R.id.forecastRecyclerView);
-        WeatherAdapter adapter = new WeatherAdapter(this,weatherList);
+        WeatherAdapter adapter = new WeatherAdapter(this, weatherList);
         recyclerView.setAdapter(adapter);
         recyclerView.addItemDecoration(new DividerItemDecoration(getApplicationContext(), DividerItemDecoration.VERTICAL));
     }
@@ -288,10 +302,20 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onResponse(JSONObject response) {
                 try {
-                    JSONObject weather = response.getJSONObject("main"),wind = response.getJSONObject("wind"),sys = response.getJSONObject("sys");
+                    JSONObject weather = response.getJSONObject("main"),
+                            wind = response.getJSONObject("wind"),
+                            sys = response.getJSONObject("sys");
+
+                    JSONArray main = response.getJSONArray("weather");
                     temp = weather.getDouble("temp");
+                    humidity = weather.getInt("humidity");
                     windSpeed = wind.getDouble("speed");
                     country = sys.getString("country");
+
+                    JSONObject object = main.getJSONObject(0);
+                    weatherState = object.getString("main");
+                    imgUrlResult = imageUrl + object.getString("icon") + "@2x.png";
+
                     setValues();
                 } catch (JSONException e) {
                     e.printStackTrace();
@@ -375,17 +399,16 @@ public class MainActivity extends AppCompatActivity {
                         JSONObject mObj = new JSONObject(mResponse);
 
                         if(mObj.getInt("cod") != 401 && mObj.getInt("cod") != 400) {
-                            weatherList.clear();
                             JSONArray array = mObj.getJSONArray("list");
 
                             weatherList.clear();
                             for (int i = 0; i < array.length(); i++) {
                                 JSONObject object = array.getJSONObject(i);
-                                JSONObject main = object.getJSONObject("main"), wind = object.getJSONObject("wind");
+                                JSONObject main = object.getJSONObject("main"), wind = object.getJSONObject("wind"), weatherObj = object.getJSONObject("weather");
                                 Weather weather = new Weather();
-                                double temp = Math.round((main.getDouble("temp") - 273.15)), speed = Math.round(wind.getDouble("speed"));
+                                double temp = Math.round(main.getDouble("temp")), speed = Math.round(wind.getDouble("speed"));
                                 String date = object.getString("dt_txt");
-                                weather.setPic(R.drawable.weather);
+                                weather.setImagePath(imageUrl + weatherObj.getString("icon") + "@2x.png");
                                 weather.setTemp((int) temp);
                                 weather.setWind((int) speed);
                                 weather.setDate(date);

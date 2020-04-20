@@ -72,4 +72,16 @@ dependencies {
     implementation 'com.valdesekamdem.library:md-toast:0.9.0'
 
     implementation 'com.google.code.gson:gson:2.8.6'
+
+    implementation 'com.github.florent37:materialtextfield:1.0.7'
+
+    implementation 'com.balysv:material-ripple:1.0.2'
+
+    implementation 'com.github.yalantis:Side-Menu.Android:1.0.2'
+
+    implementation 'com.specyci:residemenu:1.6+'
+
+    implementation 'com.baoyz.pullrefreshlayout:library:1.2.0'
+
+    implementation  'com.android.tools.build:gradle:1.2.3'
 }

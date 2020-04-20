@@ -1,5 +1,6 @@
 package com.example.habr;
 
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import androidx.appcompat.app.AppCompatActivity;
@@ -8,6 +9,9 @@ import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceManager;
 import java.util.Objects;
+
+import me.ibrahimsn.lib.OnItemReselectedListener;
+import me.ibrahimsn.lib.SmoothBottomBar;
 
 public class SettingsActivity extends AppCompatActivity {
 
@@ -25,6 +29,20 @@ public class SettingsActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
         Objects.requireNonNull(getSupportActionBar()).setDisplayHomeAsUpEnabled(true);
 
+        final SmoothBottomBar bottomBar = findViewById(R.id.bottomNavView);
+        bottomBar.setOnItemReselectedListener(new OnItemReselectedListener() {
+            @Override
+            public void onItemReselect(int i) {
+                switch (i) {
+                    case 0:
+                        finish();
+                        break;
+                    case 1:
+                        startActivity(new Intent(SettingsActivity.this, MainActivity.class));
+                        break;
+                }
+            }
+        });
     }
 
     public static class SettingsFragment extends PreferenceFragmentCompat {
