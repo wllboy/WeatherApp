@@ -17,6 +17,9 @@ import android.location.Geocoder;
 import android.location.Location;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -27,12 +30,6 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.android.volley.Request;
-import com.android.volley.RequestQueue;
-import com.android.volley.Response;
-import com.android.volley.VolleyError;
-import com.android.volley.toolbox.JsonObjectRequest;
-import com.android.volley.toolbox.Volley;
 import com.balysv.materialripple.MaterialRippleLayout;
 import com.bumptech.glide.Glide;
 import com.github.florent37.materialtextfield.MaterialTextField;
@@ -76,7 +73,6 @@ public class MainActivity extends AppCompatActivity {
     private static final String secondPartOfUrl = "&units=metric&appid=";
     private static final String imageUrl = "https://openweathermap.org/img/wn/";
     private String country = "";
-    RequestQueue mRequestQueue;
     TextView tempTextView, windTextView, celsiusTextView, cityNameTextView, humidityTextView;
     MaterialTextField cityEditText;
     ImageView countryImageView, weatherStateImageView;
@@ -100,6 +96,12 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         getPref();
+        MainActivity.this.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                setBackground();
+            }
+        });
         super.onResume();
     }
 
@@ -115,8 +117,6 @@ public class MainActivity extends AppCompatActivity {
         weatherMap.put("Rain", "Дождь");
 
         iniXml();
-
-        mRequestQueue = Volley.newRequestQueue(this);
 
         weatherList = new ArrayList<>();
 
@@ -252,18 +252,23 @@ public class MainActivity extends AppCompatActivity {
 
     @SuppressLint("SetTextI18n")
     private void setValues() {
-        tempTextView.setText(weatherMap.get(weatherState));
-        celsiusTextView.setText("" + temp + " C°");
-        windTextView.setText("" + windSpeed + " м/с");
-        humidityTextView.setText("" + humidity + '%');
-        String flagUrl = "https://www.countryflags.io/" + country.toLowerCase() + "/flat/64.png";
-        Glide.with(getApplicationContext()).load(flagUrl).into(countryImageView);
-        Glide.with(getApplicationContext()).load(imgUrlResult).into(weatherStateImageView);
-        if(cityEditText.getEditText().getText().toString().trim().length() > 0) {
-            cityNameTextView.setText(cityEditText.getEditText().getText().toString().trim());
-        }
-        setBackground();
-        cityEditText.getEditText().setText("");
+        MainActivity.this.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                tempTextView.setText(weatherMap.get(weatherState));
+                celsiusTextView.setText("" + temp + " C°");
+                windTextView.setText("" + windSpeed + " м/с");
+                humidityTextView.setText("" + humidity + '%');
+                String flagUrl = "https://www.countryflags.io/" + country.toLowerCase() + "/flat/64.png";
+                Glide.with(getApplicationContext()).load(flagUrl).into(countryImageView);
+                Glide.with(getApplicationContext()).load(imgUrlResult).into(weatherStateImageView);
+                if(cityEditText.getEditText().getText().toString().trim().length() > 0) {
+                    cityNameTextView.setText(cityEditText.getEditText().getText().toString().trim());
+                }
+                setBackground();
+                cityEditText.getEditText().setText("");
+            }
+        });
     }
 
     public String getLocationName(double latitude, double longitude) {
@@ -312,49 +317,54 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void getWeather(String url) {
-        final JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET,
-                url, null, new Response.Listener<JSONObject>() {
+        OkHttpClient client = new OkHttpClient();
+        okhttp3.Request request = new okhttp3.Request.Builder().url(url).build();
+        client.newCall(request).enqueue(new Callback() {
             @Override
-            public void onResponse(JSONObject response) {
-                try {
-                    JSONObject weather = response.getJSONObject("main"),
-                            wind = response.getJSONObject("wind"),
-                            sys = response.getJSONObject("sys");
-
-                    JSONArray main = response.getJSONArray("weather");
-                    temp = weather.getDouble("temp");
-                    humidity = weather.getInt("humidity");
-                    windSpeed = wind.getDouble("speed");
-                    country = sys.getString("country");
-
-                    JSONObject object = main.getJSONObject(0);
-                    weatherState = object.getString("main");
-                    imgUrlResult = imageUrl + object.getString("icon") + "@2x.png";
-
-                    setValues();
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
+            public void onFailure(@NotNull Call call, @NotNull IOException e) {
+                e.printStackTrace();
             }
-        }, new Response.ErrorListener() {
+
             @Override
-            public void onErrorResponse(VolleyError error) {
-                final WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-                assert wifiManager != null;
-                if (!wifiManager.isWifiEnabled()) {
-                    MDToast mdToast =
-                            MDToast.makeText(MainActivity.this, "Проверьте ваше подключение к интернету",1, MDToast.TYPE_WARNING);
-                    mdToast.show();
+            public void onResponse(@NotNull Call call, @NotNull okhttp3.Response response) throws IOException {
+                if(response.isSuccessful()) {
+                    final String mResponse = Objects.requireNonNull(response.body()).string();
+                    try {
+                        JSONObject mObj = new JSONObject(mResponse);
+                        JSONObject weather = mObj.getJSONObject("main"),
+                                wind = mObj.getJSONObject("wind"),
+                                sys = mObj.getJSONObject("sys");
+
+                        JSONArray main = mObj.getJSONArray("weather");
+                        temp = weather.getDouble("temp");
+                        humidity = weather.getInt("humidity");
+                        windSpeed = wind.getDouble("speed");
+                        country = sys.getString("country");
+
+                        JSONObject object = main.getJSONObject(0);
+                        weatherState = object.getString("main");
+                        imgUrlResult = imageUrl + object.getString("icon") + "@2x.png";
+
+                        MainActivity.this.runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                setValues();
+                            }
+                        });
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
                 } else {
-                    MDToast mdToast =
-                            MDToast.makeText(MainActivity.this, "Введите корректное название",1, MDToast.TYPE_INFO);
-                    mdToast.show();
+                    final WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+                    assert wifiManager != null;
+                    if (!wifiManager.isWifiEnabled()) {
+                        createMaterialToast("Проверьте ваше подключение к интернету", MDToast.TYPE_WARNING);
+                    } else {
+                        createMaterialToast("Введите корректное название", MDToast.TYPE_INFO);
+                    }
                 }
-                error.printStackTrace();
             }
         });
-
-        mRequestQueue.add(request);
     }
 
     private void getPref() {
@@ -472,5 +482,15 @@ public class MainActivity extends AppCompatActivity {
         } else {
             layout.setBackgroundResource(R.drawable.clouds);
         }
+    }
+
+    private void createMaterialToast(final String text, final int type) {
+        MainActivity.this.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                MDToast mdToast = MDToast.makeText(MainActivity.this, text,1, type);
+                mdToast.show();
+            }
+        });
     }
 }
