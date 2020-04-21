@@ -23,6 +23,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -38,7 +39,6 @@ import com.github.florent37.materialtextfield.MaterialTextField;
 import com.google.android.gms.location.FusedLocationProviderClient;
 
 import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.location.places.PlaceReport;
 import com.google.android.gms.tasks.OnSuccessListener;
 
 import com.snappydb.DB;
@@ -262,6 +262,7 @@ public class MainActivity extends AppCompatActivity {
         if(cityEditText.getEditText().getText().toString().trim().length() > 0) {
             cityNameTextView.setText(cityEditText.getEditText().getText().toString().trim());
         }
+        setBackground();
         cityEditText.getEditText().setText("");
     }
 
@@ -460,6 +461,16 @@ public class MainActivity extends AppCompatActivity {
                     public void onClick(DialogInterface dialog, int which) {}
                 });
         builder.show();
+    }
 
+    private void setBackground() {
+        RelativeLayout layout = findViewById(R.id.activityMain);
+        if(weatherState.equals("Clear")) {
+            layout.setBackgroundResource(R.drawable.sky);
+        } else if(weatherState.equals("Rain") || weatherState.equals("Drizzle")) {
+            layout.setBackgroundResource(R.drawable.rainy);
+        } else {
+            layout.setBackgroundResource(R.drawable.clouds);
+        }
     }
 }
