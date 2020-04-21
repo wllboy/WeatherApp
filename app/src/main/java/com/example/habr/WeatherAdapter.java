@@ -1,5 +1,6 @@
 package com.example.habr;
 
+import android.app.DownloadManager;
 import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -11,14 +12,19 @@ import android.widget.TextView;
 import androidx.cardview.widget.CardView;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.RequestManager;
+
 import java.util.List;
 
 public class WeatherAdapter extends RecyclerView.Adapter<WeatherAdapter.ViewHolder> {
 
     private LayoutInflater inflater;
     private List <Weather> weatherList;
+    private final RequestManager requestManager;
 
-    WeatherAdapter(Context context, List<Weather> weatherList) {
+    WeatherAdapter(Context context, List<Weather> weatherList, RequestManager requestManager) {
+        this.requestManager = requestManager;
         this.inflater = LayoutInflater.from(context);
         this.weatherList = weatherList;
     }
@@ -46,6 +52,7 @@ public class WeatherAdapter extends RecyclerView.Adapter<WeatherAdapter.ViewHold
     @Override
     public void onBindViewHolder(WeatherAdapter.ViewHolder holder, int position) {
         Weather weather = weatherList.get(position);
+        loadImage(requestManager, weather.getImagePath(), holder.imageView);
         holder.temp.setText(String.valueOf(weather.getTemp()) +  '°');
         holder.wind.setText(String.valueOf(weather.getWind()) + "м/с");
         holder.date.setText(weather.getDate());
@@ -54,5 +61,9 @@ public class WeatherAdapter extends RecyclerView.Adapter<WeatherAdapter.ViewHold
     @Override
     public int getItemCount() {
         return weatherList.size();
+    }
+
+    static void loadImage(RequestManager glide, String url, ImageView view) {
+        glide.load(url).into(view);
     }
 }

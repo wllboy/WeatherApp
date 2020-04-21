@@ -21,7 +21,6 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -30,7 +29,6 @@ import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
 import com.balysv.materialripple.MaterialRippleLayout;
-import com.baoyz.widget.PullRefreshLayout;
 import com.bumptech.glide.Glide;
 import com.github.florent37.materialtextfield.MaterialTextField;
 import com.google.android.gms.location.FusedLocationProviderClient;
@@ -128,7 +126,6 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 String url = firstPartOfUrl + cityEditText.getEditText().getText().toString().trim() + secondPartOfUrl + API_KEY;
                 getWeather(url);
-
                 String curCity = cityEditText.getEditText().getText().toString().trim();
                 getForecastOkHttp("https://api.openweathermap.org/data/2.5/forecast?q=" + curCity + "&units=metric&appid=da97f82748130a72c467aa50dfffcda7");
             }
@@ -139,6 +136,7 @@ public class MainActivity extends AppCompatActivity {
             public void onItemReselect(int i) {
                 switch (i) {
                     case  0:
+                        finish();
                         System.exit(0);
                         break;
                     case 1:
@@ -146,7 +144,6 @@ public class MainActivity extends AppCompatActivity {
                         break;
                     case 2:
                         cityEditText.callOnClick();
-                        cityEditText.getEditText().callOnClick();
                         break;
                 }
             }
@@ -177,7 +174,7 @@ public class MainActivity extends AppCompatActivity {
                             cityName = getLocationName(latitude, longitude);
                             try {
                                 DB weatherDB = DBFactory.open(MainActivity.this,"weather");
-                                weatherDB.put("city",cityName);
+                                weatherDB.put("city", cityName);
                                 weatherDB.putDouble("lat",latitude);
                                 weatherDB.putDouble("lon",longitude);
                             } catch (SnappydbException e) {
@@ -291,7 +288,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void startRecyclerView() {
         recyclerView = findViewById(R.id.forecastRecyclerView);
-        WeatherAdapter adapter = new WeatherAdapter(this, weatherList);
+        WeatherAdapter adapter = new WeatherAdapter(this, weatherList, Glide.with(this));
         recyclerView.setAdapter(adapter);
         recyclerView.addItemDecoration(new DividerItemDecoration(getApplicationContext(), DividerItemDecoration.VERTICAL));
     }
@@ -382,7 +379,7 @@ public class MainActivity extends AppCompatActivity {
         getWeather(firstPartOfUrl + city + secondPartOfUrl + API_KEY);
     }
 
-    private void getForecastOkHttp(String url) {
+    private void getForecastOkHttp(final String url) {
         OkHttpClient client = new OkHttpClient();
         okhttp3.Request request = new okhttp3.Request.Builder().url(url).build();
         client.newCall(request).enqueue(new Callback() {
@@ -397,18 +394,17 @@ public class MainActivity extends AppCompatActivity {
                     final String mResponse = Objects.requireNonNull(response.body()).string();
                     try {
                         JSONObject mObj = new JSONObject(mResponse);
-
                         if(mObj.getInt("cod") != 401 && mObj.getInt("cod") != 400) {
                             JSONArray array = mObj.getJSONArray("list");
-
                             weatherList.clear();
                             for (int i = 0; i < array.length(); i++) {
                                 JSONObject object = array.getJSONObject(i);
-                                JSONObject main = object.getJSONObject("main"), wind = object.getJSONObject("wind"), weatherObj = object.getJSONObject("weather");
+                                JSONObject main = object.getJSONObject("main"), wind = object.getJSONObject("wind");
+                                JSONArray weatherArray = object.getJSONArray("weather");
                                 Weather weather = new Weather();
                                 double temp = Math.round(main.getDouble("temp")), speed = Math.round(wind.getDouble("speed"));
                                 String date = object.getString("dt_txt");
-                                weather.setImagePath(imageUrl + weatherObj.getString("icon") + "@2x.png");
+                                weather.setImagePath(imageUrl + weatherArray.getJSONObject(0).getString("icon") + "@2x.png");
                                 weather.setTemp((int) temp);
                                 weather.setWind((int) speed);
                                 weather.setDate(date);
@@ -421,7 +417,6 @@ public class MainActivity extends AppCompatActivity {
                                     startRecyclerView();
                                 }
                             });
-
                             setUIThread();
                         }
                     } catch (JSONException e) {
@@ -431,5 +426,4 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
-
 }
