@@ -70,7 +70,7 @@ public class StartActivity extends AppCompatActivity {
 
     private void buildAlertMessageNoGps() {
         try {
-            DB weatherDB = DBFactory.open(this,"weather");
+            DB weatherDB = DBFactory.open(this,"weatherDB");
             if (!weatherDB.exists("city")) {
                 isGpsNeeded = true;
                 final AlertDialog.Builder builder = new AlertDialog.Builder(this);

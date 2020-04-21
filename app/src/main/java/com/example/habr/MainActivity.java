@@ -1,5 +1,6 @@
 package com.example.habr;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.preference.PreferenceManager;
@@ -7,6 +8,7 @@ import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.RecyclerView;
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
@@ -18,9 +20,11 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -34,6 +38,7 @@ import com.github.florent37.materialtextfield.MaterialTextField;
 import com.google.android.gms.location.FusedLocationProviderClient;
 
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.places.PlaceReport;
 import com.google.android.gms.tasks.OnSuccessListener;
 
 import com.snappydb.DB;
@@ -153,15 +158,26 @@ public class MainActivity extends AppCompatActivity {
 
     private void getLocation() {
         try {
-            DB weatherDB = DBFactory.open(this,"weather");
+            DB weatherDB = DBFactory.open(this,"weatherDB");
             if(weatherDB.exists("city")) {
-                cityName = weatherDB.get("city");
-                getForecastOkHttp("https://api.openweathermap.org/data/2.5/forecast?q=" + cityName + "&cnt=20&appid=da97f82748130a72c467aa50dfffcda7");
+                Log.d("tag", "exists");
+                CityList cityList = weatherDB.getObject("city", CityList.class);
+                ArrayList <City> cities = cityList.cities;
+                City city = cities.get(0);
+                if(city == null) {
+                    Log.d("tag", "cities is null");
+                }
+                Log.d("tag", Objects.requireNonNull(city).cityName);
+                cityName = city.cityName;
+                latitude = city.latitudeValue;
+                longitude = city.longitudeValue;
+                getForecastOkHttp("https://api.openweathermap.org/data/2.5/forecast?q=" + cityName + "&cnt=20&units=metric&appid=da97f82748130a72c467aa50dfffcda7");
                 setValuesByCity(cityName);
                 cityNameTextView.setText(cityName);
                 startRecyclerView();
                 setUIThread();
             } else {
+                Log.d("tag", "does not exist");
                 fusedLocationClient.getLastLocation().addOnSuccessListener(this, new OnSuccessListener<Location>() {
                     @Override
                     public void onSuccess(Location location) {
@@ -173,16 +189,17 @@ public class MainActivity extends AppCompatActivity {
 
                             cityName = getLocationName(latitude, longitude);
                             try {
-                                DB weatherDB = DBFactory.open(MainActivity.this,"weather");
-                                weatherDB.put("city", cityName);
-                                weatherDB.putDouble("lat",latitude);
-                                weatherDB.putDouble("lon",longitude);
+                                DB weatherDB = DBFactory.open(MainActivity.this,"weatherDB");
+                                City city = new City(cityName, latitude, longitude);
+                                CityList cityList = new CityList(new ArrayList<City>());
+                                cityList.cities.add(city);
+                                weatherDB.put("city", cityList);
                             } catch (SnappydbException e) {
                                 e.printStackTrace();
                             }
 
                             cityNameTextView.setText(cityName);
-                            getForecastOkHttp("https://api.openweathermap.org/data/2.5/forecast?q=" + cityName + "&cnt=20&appid=da97f82748130a72c467aa50dfffcda7");
+                            getForecastOkHttp("https://api.openweathermap.org/data/2.5/forecast?q=" + cityName + "&cnt=20&units=metric&appid=da97f82748130a72c467aa50dfffcda7");
                             setValuesByCity(cityName);
                             startRecyclerView();
                             setUIThread();
@@ -425,5 +442,24 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+    }
+
+    public void addCity(View view) {
+        final EditText editText = new EditText(this);
+        AlertDialog.Builder builder = new AlertDialog.Builder(this)
+                .setTitle("Введите название города")
+                .setView(editText)
+                .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        Toast.makeText(MainActivity.this, editText.getText().toString().trim(), Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton("Отмена", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {}
+                });
+        builder.show();
+
     }
 }

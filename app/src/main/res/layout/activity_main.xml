@@ -162,4 +162,22 @@
         android:layout_below="@id/cityNameTextView"
         android:layout_marginLeft="20dp"
         />
+
+    <com.getbase.floatingactionbutton.FloatingActionsMenu
+        android:id="@+id/floatingActionMenu"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/toolbar"
+        android:layout_alignParentRight="true"
+        app:fab_expandDirection="down"
+        >
+        <com.getbase.floatingactionbutton.FloatingActionButton
+            android:id="@+id/addCityActionButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:fab_title="Добавить город"
+            app:fab_icon="@drawable/ic_location_city_black_24dp"
+            android:onClick="addCity"
+            />
+    </com.getbase.floatingactionbutton.FloatingActionsMenu>
 </RelativeLayout>
