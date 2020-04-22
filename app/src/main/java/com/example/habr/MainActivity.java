@@ -17,9 +17,6 @@ import android.location.Geocoder;
 import android.location.Location;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
-import android.os.Message;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -28,7 +25,6 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.balysv.materialripple.MaterialRippleLayout;
 import com.bumptech.glide.Glide;
@@ -52,7 +48,11 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -133,6 +133,7 @@ public class MainActivity extends AppCompatActivity {
                 getWeather(url);
                 String curCity = cityEditText.getEditText().getText().toString().trim();
                 getForecastOkHttp("https://api.openweathermap.org/data/2.5/forecast?q=" + curCity + "&units=metric&appid=da97f82748130a72c467aa50dfffcda7");
+                Log.d("tag", "https://api.openweathermap.org/data/2.5/forecast?q=" + curCity + "&units=metric&appid=da97f82748130a72c467aa50dfffcda7");
             }
         });
 
@@ -142,7 +143,6 @@ public class MainActivity extends AppCompatActivity {
                 switch (i) {
                     case  0:
                         finish();
-                        System.exit(0);
                         break;
                     case 1:
                         startActivity(new Intent(MainActivity.this,SettingsActivity.class));
@@ -171,7 +171,7 @@ public class MainActivity extends AppCompatActivity {
                 cityName = city.cityName;
                 latitude = city.latitudeValue;
                 longitude = city.longitudeValue;
-                getForecastOkHttp("https://api.openweathermap.org/data/2.5/forecast?q=" + cityName + "&cnt=20&units=metric&appid=da97f82748130a72c467aa50dfffcda7");
+                getForecastOkHttp("https://api.openweathermap.org/data/2.5/forecast?q=" + cityName + "&units=metric&appid=da97f82748130a72c467aa50dfffcda7");
                 setValuesByCity(cityName);
                 cityNameTextView.setText(cityName);
                 startRecyclerView();
@@ -199,7 +199,7 @@ public class MainActivity extends AppCompatActivity {
                             }
 
                             cityNameTextView.setText(cityName);
-                            getForecastOkHttp("https://api.openweathermap.org/data/2.5/forecast?q=" + cityName + "&cnt=20&units=metric&appid=da97f82748130a72c467aa50dfffcda7");
+                            getForecastOkHttp("https://api.openweathermap.org/data/2.5/forecast?q=" + cityName + "&units=metric&appid=da97f82748130a72c467aa50dfffcda7");
                             setValuesByCity(cityName);
                             startRecyclerView();
                             setUIThread();
@@ -272,7 +272,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public String getLocationName(double latitude, double longitude) {
-
         String cityName = "Not Found";
         Geocoder gcd = new Geocoder(getBaseContext(), Locale.getDefault());
         try {
@@ -442,6 +441,9 @@ public class MainActivity extends AppCompatActivity {
                             MainActivity.this.runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {
+                                    List <Weather> list = refactorCurDayWeatherList(weatherList);
+                                    startCurDatRecView(list);
+                                    refactorWeatherList();
                                     startRecyclerView();
                                 }
                             });
@@ -458,12 +460,13 @@ public class MainActivity extends AppCompatActivity {
     public void addCity(View view) {
         final EditText editText = new EditText(this);
         AlertDialog.Builder builder = new AlertDialog.Builder(this)
-                .setTitle("Введите название города")
+                .setTitle("Добавить город")
+                .setMessage("Введите название города")
                 .setView(editText)
                 .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        Toast.makeText(MainActivity.this, editText.getText().toString().trim(), Toast.LENGTH_SHORT).show();
+
                     }
                 })
                 .setNegativeButton("Отмена", new DialogInterface.OnClickListener() {
@@ -492,5 +495,44 @@ public class MainActivity extends AppCompatActivity {
                 mdToast.show();
             }
         });
+    }
+
+    private void startCurDatRecView(List <Weather> weatherList) {
+        RecyclerView curDayRecyclerView = findViewById(R.id.currentDayRecyclerView);
+        WeatherAdapter adapter = new WeatherAdapter(this, weatherList, Glide.with(this));
+        curDayRecyclerView.setAdapter(adapter);
+        curDayRecyclerView.addItemDecoration(new DividerItemDecoration(getApplicationContext(), DividerItemDecoration.HORIZONTAL));
+    }
+
+    private void refactorWeatherList() {
+        List <Weather> newWeatherList = weatherList;
+        for(int i = 0;i < weatherList.size();i++) {
+            Weather weather1 = weatherList.get(i);
+            for(int j = i;j < weatherList.size();j++) {
+                Weather weather2 = weatherList.get(j);
+                String s1 = weather1.getDate().substring(0,10), s2 = weather2.getDate().substring(0,10);
+                Log.d("tag", s1 + " " + s2);
+                if(s1.equals(s2)) {
+                    Log.d("tag", "equals");
+                    newWeatherList.remove(weather2);
+                }
+            }
+        }
+        weatherList = newWeatherList;
+    }
+
+    private List<Weather> refactorCurDayWeatherList(List <Weather> weatherList) {
+        Date date = Calendar.getInstance().getTime();
+        @SuppressLint("SimpleDateFormat") DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
+        String curDate = df.format(date).substring(0,10);
+        List <Weather> res = new ArrayList<>();
+        for(int i = 0;i < weatherList.size();i++) {
+            if(weatherList.get(i).getDate().substring(0,10).equals(curDate)) {
+                res.add(weatherList.get(i));
+            } else {
+                break;
+            }
+        }
+        return res;
     }
 }
