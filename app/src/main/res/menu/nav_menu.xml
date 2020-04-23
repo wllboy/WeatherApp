@@ -10,7 +10,7 @@
         ></item>
 
     <item
-        android:title="@string/action_settings"
+        android:title="@string/settings"
         android:id="@+id/settings_item"
         app:showAsAction="always"
         android:icon="@drawable/ic_settings_black_24dp"

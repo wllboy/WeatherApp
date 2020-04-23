@@ -2,11 +2,13 @@ package com.example.habr;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.SearchView;
 import androidx.appcompat.widget.Toolbar;
 import androidx.preference.PreferenceManager;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.RecyclerView;
 import android.annotation.SuppressLint;
+import android.app.SearchManager;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -16,19 +18,19 @@ import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
 import android.net.wifi.WifiManager;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-import com.balysv.materialripple.MaterialRippleLayout;
 import com.bumptech.glide.Glide;
-import com.github.florent37.materialtextfield.MaterialTextField;
 import com.google.android.gms.location.FusedLocationProviderClient;
 
 import com.google.android.gms.location.LocationServices;
@@ -57,6 +59,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 
 import me.ibrahimsn.lib.OnItemReselectedListener;
@@ -74,9 +78,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String imageUrl = "https://openweathermap.org/img/wn/";
     private String country = "";
     TextView tempTextView, windTextView, celsiusTextView, cityNameTextView, humidityTextView;
-    MaterialTextField cityEditText;
     ImageView countryImageView, weatherStateImageView;
-    Button enterButton;
     RecyclerView recyclerView;
     SmoothBottomBar navigationView;
     Toolbar toolbar;
@@ -116,6 +118,20 @@ public class MainActivity extends AppCompatActivity {
         weatherMap.put("Clouds", "Облачно");
         weatherMap.put("Rain", "Дождь");
 
+        AsyncTask.execute(new Runnable() {
+            @Override
+            public void run() {
+                TimerTask timerTask = new TimerTask() {
+                    @Override
+                    public void run() {
+                        setTime();
+                    }
+                };
+                Timer timer = new Timer();
+                timer.schedule(timerTask, 1000, 5000);
+            }
+        });
+
         iniXml();
 
         weatherList = new ArrayList<>();
@@ -125,17 +141,6 @@ public class MainActivity extends AppCompatActivity {
         getLocation();
 
         getPref();
-
-        enterButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                String url = firstPartOfUrl + cityEditText.getEditText().getText().toString().trim() + secondPartOfUrl + API_KEY;
-                getWeather(url);
-                String curCity = cityEditText.getEditText().getText().toString().trim();
-                getForecastOkHttp("https://api.openweathermap.org/data/2.5/forecast?q=" + curCity + "&units=metric&appid=da97f82748130a72c467aa50dfffcda7");
-                Log.d("tag", "https://api.openweathermap.org/data/2.5/forecast?q=" + curCity + "&units=metric&appid=da97f82748130a72c467aa50dfffcda7");
-            }
-        });
 
         navigationView.setOnItemReselectedListener(new OnItemReselectedListener() {
             @Override
@@ -148,12 +153,46 @@ public class MainActivity extends AppCompatActivity {
                         startActivity(new Intent(MainActivity.this,SettingsActivity.class));
                         break;
                     case 2:
-                        cityEditText.callOnClick();
+
                         break;
                 }
             }
         });
 
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.search_menu, menu);
+
+        MenuItem searchItem = menu.findItem(R.id.search_bar);
+
+        SearchManager searchManager = (SearchManager) MainActivity.this.getSystemService(Context.SEARCH_SERVICE);
+
+        SearchView searchView = null;
+        if (searchItem != null) {
+            searchView = (SearchView) searchItem.getActionView();
+            searchView.setQueryHint("Найти город...");
+        }
+        if (searchView != null) {
+            searchView.setSearchableInfo(Objects.requireNonNull(searchManager).getSearchableInfo(MainActivity.this.getComponentName()));
+            searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+                @Override
+                public boolean onQueryTextSubmit(String query) {
+                    String url = firstPartOfUrl + query + secondPartOfUrl + API_KEY;
+                    getWeather(url);
+                    cityName = query;
+                    getForecastOkHttp("https://api.openweathermap.org/data/2.5/forecast?q=" + query + "&units=metric&appid=da97f82748130a72c467aa50dfffcda7");
+                    return false;
+                }
+
+                @Override
+                public boolean onQueryTextChange(String newText) {
+                    return false;
+                }
+            });
+        }
+        return super.onCreateOptionsMenu(menu);
     }
 
     private void getLocation() {
@@ -262,11 +301,8 @@ public class MainActivity extends AppCompatActivity {
                 String flagUrl = "https://www.countryflags.io/" + country.toLowerCase() + "/flat/64.png";
                 Glide.with(getApplicationContext()).load(flagUrl).into(countryImageView);
                 Glide.with(getApplicationContext()).load(imgUrlResult).into(weatherStateImageView);
-                if(cityEditText.getEditText().getText().toString().trim().length() > 0) {
-                    cityNameTextView.setText(cityEditText.getEditText().getText().toString().trim());
-                }
+                cityNameTextView.setText(cityName);
                 setBackground();
-                cityEditText.getEditText().setText("");
             }
         });
     }
@@ -295,24 +331,20 @@ public class MainActivity extends AppCompatActivity {
         celsiusTextView = findViewById(R.id.celciumTextView);
         windTextView = findViewById(R.id.windTextView);
         humidityTextView = findViewById(R.id.humidityTextView);
-        cityEditText = findViewById(R.id.cityEditText);
         countryImageView = findViewById(R.id.flagImageView);
         weatherStateImageView = findViewById(R.id.weatherStateImageView);
-        enterButton = findViewById(R.id.enterButton);
         navigationView = findViewById(R.id.bottomNavView);
         cityNameTextView = findViewById(R.id.cityNameTextView);
         progressBar = findViewById(R.id.progressBar);
-
         toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        MaterialRippleLayout.on(enterButton).rippleColor(Color.RED).create();
     }
 
     private void startRecyclerView() {
         recyclerView = findViewById(R.id.forecastRecyclerView);
-        WeatherAdapter adapter = new WeatherAdapter(this, weatherList, Glide.with(this));
+        WeatherAdapter adapter = new WeatherAdapter(this, weatherList, Glide.with(this), false);
         recyclerView.setAdapter(adapter);
-        recyclerView.addItemDecoration(new DividerItemDecoration(getApplicationContext(), DividerItemDecoration.VERTICAL));
+        recyclerView.addItemDecoration(new DividerItemDecoration(getApplicationContext(), DividerItemDecoration.HORIZONTAL));
     }
 
     private void getWeather(String url) {
@@ -339,7 +371,6 @@ public class MainActivity extends AppCompatActivity {
                         humidity = weather.getInt("humidity");
                         windSpeed = wind.getDouble("speed");
                         country = sys.getString("country");
-
                         JSONObject object = main.getJSONObject(0);
                         weatherState = object.getString("main");
                         imgUrlResult = imageUrl + object.getString("icon") + "@2x.png";
@@ -477,13 +508,23 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setBackground() {
-        RelativeLayout layout = findViewById(R.id.activityMain);
+        RelativeLayout layout = findViewById(R.id.bgRelativeLayout);
+        int n = getTime().length();
+        String time = getTime();
         if(weatherState.equals("Clear")) {
-            layout.setBackgroundResource(R.drawable.sky);
+            if(time.charAt(n-2) == 'P' && time.charAt(0) >= '8' && !time.substring(0,2).equals("11")) {
+                layout.setBackgroundResource(R.drawable.sunset);
+            } else {
+                layout.setBackgroundResource(R.drawable.landscape_sunny);
+            }
         } else if(weatherState.equals("Rain") || weatherState.equals("Drizzle")) {
             layout.setBackgroundResource(R.drawable.rainy);
         } else {
-            layout.setBackgroundResource(R.drawable.clouds);
+            if(time.charAt(n-2) == 'P' && time.charAt(0) >= '8') {
+                layout.setBackgroundResource(R.drawable.night);
+            } else {
+                layout.setBackgroundResource(R.drawable.landscape_sunny);
+            }
         }
     }
 
@@ -499,7 +540,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void startCurDatRecView(List <Weather> weatherList) {
         RecyclerView curDayRecyclerView = findViewById(R.id.currentDayRecyclerView);
-        WeatherAdapter adapter = new WeatherAdapter(this, weatherList, Glide.with(this));
+        WeatherAdapter adapter = new WeatherAdapter(this, weatherList, Glide.with(this), true);
         curDayRecyclerView.setAdapter(adapter);
         curDayRecyclerView.addItemDecoration(new DividerItemDecoration(getApplicationContext(), DividerItemDecoration.HORIZONTAL));
     }
@@ -528,11 +569,36 @@ public class MainActivity extends AppCompatActivity {
         List <Weather> res = new ArrayList<>();
         for(int i = 0;i < weatherList.size();i++) {
             if(weatherList.get(i).getDate().substring(0,10).equals(curDate)) {
-                res.add(weatherList.get(i));
+                Weather weather = new Weather();
+                weather.setDate(weatherList.get(i).getDate().substring(0,weatherList.get(i).getDate().length() - 3));
+                weather.setImagePath(weatherList.get(i).getImagePath());
+                weather.setTemp((int) weatherList.get(i).getTemp());
+                weather.setWind((int) weatherList.get(i).getWind());
+                weather.setDate(weather.getDate().substring(11));
+                res.add(weather);
             } else {
                 break;
             }
         }
         return res;
+    }
+
+    private void setTime() {
+        Date date = Calendar.getInstance().getTime();
+        @SuppressLint("SimpleDateFormat") DateFormat df = new SimpleDateFormat("h:mm a");
+        final String curDate = df.format(date);
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                TextView textView = findViewById(R.id.timeTextView);
+                textView.setText(curDate);
+            }
+        });
+    }
+
+    private String getTime() {
+        Date date = Calendar.getInstance().getTime();
+        @SuppressLint("SimpleDateFormat") DateFormat df = new SimpleDateFormat("h:mm a");
+        return df.format(date);
     }
 }

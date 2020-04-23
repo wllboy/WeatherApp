@@ -21,43 +21,52 @@
         android:paddingTop="@dimen/tool_bar_top_padding"
         android:transitionName="actionBar" />
 
+    <RelativeLayout
+        android:id="@+id/bgRelativeLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/dividerLayout"
+        >
+        <TextView
+            android:id="@+id/timeTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="20sp"
+            android:textColor="@android:color/black"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentBottom="true"
+            android:text="10:00"
+            />
+    </RelativeLayout>
+
+    <ImageView
+        android:id="@+id/weatherStateImageView"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:layout_toLeftOf="@id/feelsLikeTextView"
+        android:layout_below="@id/cityNameTextView"
+        android:layout_marginLeft="20dp"
+        />
+
+
     <TextView
         android:id="@+id/cityNameTextView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@id/toolbar"
         android:layout_alignParentLeft="true"
         android:layout_marginLeft="100dp"
-        android:textSize="20sp"
+        android:layout_below="@id/toolbar"
+        android:textSize="30sp"
         android:textColor="@android:color/black"
         android:layout_marginTop="10dp"
         />
-
-    <com.github.florent37.materialtextfield.MaterialTextField
-        android:id="@+id/cityEditText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/humidityTextView"
-        android:layout_alignParentLeft="true"
-        android:layout_marginLeft="30dp"
-        app:mtf_image="@drawable/ic_search_black_24dp"
-        app:mtf_labelColor="#666">
-
-        <EditText
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Введите название города..."
-            android:textColor="#333"
-            android:textSize="15sp" />
-
-    </com.github.florent37.materialtextfield.MaterialTextField>
 
     <TextView
         android:id="@+id/feelsLikeTextView"
         android:layout_below="@id/cityNameTextView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="20sp"
+        android:textSize="30sp"
         android:textColor="@android:color/black"
         android:layout_centerInParent="true"
         android:layout_alignParentTop="true"
@@ -69,7 +78,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@id/feelsLikeTextView"
-        android:textSize="20sp"
+        android:textSize="30sp"
         android:layout_alignLeft="@id/feelsLikeTextView"
         android:layout_marginTop="10dp"
         android:textColor="@android:color/black"
@@ -82,7 +91,7 @@
         android:layout_below="@id/celciumTextView"
         android:layout_alignLeft="@id/feelsLikeTextView"
         android:textColor="@android:color/black"
-        android:textSize="20sp"
+        android:textSize="30sp"
         android:layout_marginTop="10dp"
         />
 
@@ -93,7 +102,7 @@
         android:layout_below="@id/windTextView"
         android:layout_alignLeft="@id/feelsLikeTextView"
         android:textColor="@android:color/white"
-        android:textSize="20sp"
+        android:textSize="30sp"
         android:layout_marginTop="10dp"
         />
     <ImageView
@@ -104,14 +113,6 @@
         android:layout_toRightOf="@id/cityNameTextView"
         android:layout_marginLeft="5dp"
         android:layout_marginTop="10dp"
-        />
-    <Button
-        android:id="@+id/enterButton"
-        android:layout_width="50dp"
-        android:layout_height="50dp"
-        android:layout_above="@id/dividerLayout"
-        android:layout_toRightOf="@id/cityEditText"
-        android:background="@drawable/ic_search_black_24dp"
         />
 
     <me.ibrahimsn.lib.SmoothBottomBar
@@ -125,16 +126,19 @@
         />
 
     <RelativeLayout
+        android:id="@+id/recyclerViewRelLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_below="@id/currentDayRecyclerView"
         android:layout_above="@id/bottomNavView"
+        android:layout_marginBottom="8dp"
+        android:background="@android:color/white"
         >
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/forecastRecyclerView"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@android:color/white"
+            android:orientation="horizontal"
             app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
     </RelativeLayout>
 
@@ -153,17 +157,8 @@
         android:layout_height="5dp"
         android:layout_margin="1dp"
         android:orientation="vertical"
-        android:background="@android:color/holo_blue_light"
-        android:layout_below="@id/cityEditText"
-        />
-
-    <ImageView
-        android:id="@+id/weatherStateImageView"
-        android:layout_width="60dp"
-        android:layout_height="60dp"
-        android:layout_toLeftOf="@id/feelsLikeTextView"
-        android:layout_below="@id/cityNameTextView"
-        android:layout_marginLeft="20dp"
+        android:background="@android:color/transparent"
+        android:layout_centerInParent="true"
         />
 
     <com.getbase.floatingactionbutton.FloatingActionsMenu
@@ -186,10 +181,11 @@
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/currentDayRecyclerView"
+        android:layout_centerInParent="true"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:layout_marginBottom="8dp"
+        android:layout_margin="5dp"
         android:layout_below="@id/dividerLayout"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         />

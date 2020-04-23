@@ -1,29 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.google.android.material.card.MaterialCardView
     xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/weatherCardView"
+    android:id="@+id/curDayWeatherCardView"
     android:layout_width="wrap_content"
-    android:layout_height="match_parent">
+    android:layout_height="wrap_content">
 
     <RelativeLayout
         android:background="@android:color/darker_gray"
         android:layout_width="wrap_content"
-        android:layout_height="match_parent">
+        android:layout_height="wrap_content">
         <ImageView
             android:id="@+id/weatherImage"
-            android:layout_centerInParent="true"
-            android:layout_alignParentTop="true"
-            android:layout_marginTop="2dp"
-            android:layout_width="100dp"
-            android:layout_height="45dp"
+            android:layout_width="70dp"
+            android:layout_height="70dp"
+            android:src="@drawable/weather"
             />
 
         <TextView
             android:id="@+id/dateTextView"
-            android:layout_width="100dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginLeft="5dp"
-            android:layout_marginRight="5dp"
             android:text="01/01/01 12:00"
             android:layout_below="@id/weatherImage"
             android:textSize="15sp" />
@@ -33,16 +29,14 @@
             android:id="@+id/tempTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginLeft="5dp"
             android:textSize="15sp"
             android:layout_below="@+id/dateTextView"
             android:text="12 C"
             ></TextView>
         <TextView
             android:id="@+id/windTextView"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginLeft="5dp"
             android:textSize="15sp"
             android:layout_below="@id/tempTextView"
             android:text="@string/wind"
