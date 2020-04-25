@@ -3,9 +3,14 @@ package com.example.habr;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+
+import android.Manifest;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.location.LocationManager;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
@@ -23,6 +28,8 @@ import java.util.TimerTask;
 public class StartActivity extends AppCompatActivity {
 
     boolean isGpsNeeded;
+
+
 
     @Override
     protected void onResume() {

@@ -7,6 +7,14 @@
     </PreferenceCategory>
 
     <SwitchPreference
+        app:key="background"
+        android:summaryOn="Вкл."
+        android:summaryOff="Выкл."
+        android:title="Динамический фон"
+        >
+    </SwitchPreference>
+
+    <SwitchPreference
        app:key="theme"
        android:summaryOn="Вкл."
        android:summaryOff="Выкл."

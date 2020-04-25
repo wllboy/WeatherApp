@@ -4,15 +4,20 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SearchView;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.preference.PreferenceManager;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.RecyclerView;
+
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.SearchManager;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Address;
 import android.location.Geocoder;
@@ -24,10 +29,12 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
+import android.widget.Spinner;
 import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
@@ -69,6 +76,8 @@ import me.ibrahimsn.lib.SmoothBottomBar;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -83,8 +92,10 @@ public class MainActivity extends AppCompatActivity {
     SmoothBottomBar navigationView;
     Toolbar toolbar;
     ProgressBar progressBar;
+    SearchView searchView;
     public double temp = 0, windSpeed = 0, latitude = 0, longitude = 0;
     private int humidity;
+    private boolean wifiEnabled = true, recViewDecorated = false, curDayRecViewDecorated = false, exist;
 
     private String cityName = "", imgUrlResult = "";
 
@@ -93,8 +104,38 @@ public class MainActivity extends AppCompatActivity {
 
     private HashMap <String,String> weatherMap;
 
+    private Timer wifiTimer;
     String weatherState = "";
 
+    public static final int MY_PERMISSIONS_REQUEST_LOCATION = 99;
+
+    public void checkLocationPermission() {
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_FINE_LOCATION)) {
+                ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, MY_PERMISSIONS_REQUEST_LOCATION);
+            } else {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                        MY_PERMISSIONS_REQUEST_LOCATION);
+            }
+            getLocation();
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NotNull String[] permissions, @NotNull int[] grantResults) {
+        if (requestCode == MY_PERMISSIONS_REQUEST_LOCATION) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                    getLocation();
+                }
+
+            }
+        }
+    }
     @Override
     protected void onResume() {
         getPref();
@@ -108,9 +149,23 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onStop() {
+        wifiTimer.cancel();
+        super.onStop();
+    }
+
+    @Override
+    protected void onStart() {
+        checkLocationPermission();
+        super.onStart();
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        wifiTimer = new Timer();
 
         weatherMap = new HashMap<>();
         weatherMap.put("Clear", "Ясно");
@@ -132,6 +187,22 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        AsyncTask.execute(new Runnable() {
+           @Override
+           public void run() {
+               TimerTask wifiTimerTask = new TimerTask() {
+                   @Override
+                   public void run() {
+                       wifiEnabled = checkWifiConnection();
+                       if(!wifiEnabled) {
+                           createMaterialToast("Проверьте ваше подключение к интернету", MDToast.TYPE_WARNING);
+                       }
+                   }
+               };
+               wifiTimer = new Timer();
+               wifiTimer.schedule(wifiTimerTask, 1000, 1200);
+           }
+       });
         iniXml();
 
         weatherList = new ArrayList<>();
@@ -153,12 +224,11 @@ public class MainActivity extends AppCompatActivity {
                         startActivity(new Intent(MainActivity.this,SettingsActivity.class));
                         break;
                     case 2:
-
+                        searchView.onActionViewExpanded();
                         break;
                 }
             }
         });
-
     }
 
     @Override
@@ -169,20 +239,19 @@ public class MainActivity extends AppCompatActivity {
 
         SearchManager searchManager = (SearchManager) MainActivity.this.getSystemService(Context.SEARCH_SERVICE);
 
-        SearchView searchView = null;
+        searchView = null;
         if (searchItem != null) {
             searchView = (SearchView) searchItem.getActionView();
             searchView.setQueryHint("Найти город...");
         }
         if (searchView != null) {
             searchView.setSearchableInfo(Objects.requireNonNull(searchManager).getSearchableInfo(MainActivity.this.getComponentName()));
+            final SearchView finalSearchView = searchView;
             searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
                 @Override
                 public boolean onQueryTextSubmit(String query) {
-                    String url = firstPartOfUrl + query + secondPartOfUrl + API_KEY;
-                    getWeather(url);
-                    cityName = query;
-                    getForecastOkHttp("https://api.openweathermap.org/data/2.5/forecast?q=" + query + "&units=metric&appid=da97f82748130a72c467aa50dfffcda7");
+                    setWeatherByCall(query);
+                    finalSearchView.setQuery("", true);
                     return false;
                 }
 
@@ -192,21 +261,33 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
         }
+
+        MenuItem renewItem = menu.findItem(R.id.renew_item);
+        renewItem.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+            @Override
+            public boolean onMenuItemClick(MenuItem item) {
+                getLocation();
+                return false;
+            }
+        });
         return super.onCreateOptionsMenu(menu);
+    }
+
+    private void setWeatherByCall(String query) {
+        String url = firstPartOfUrl + query + secondPartOfUrl + API_KEY;
+        getWeather(url);
+        cityName = query;
+        getForecastOkHttp("https://api.openweathermap.org/data/2.5/forecast?q=" + query + "&units=metric&appid=da97f82748130a72c467aa50dfffcda7");
     }
 
     private void getLocation() {
         try {
             DB weatherDB = DBFactory.open(this,"weatherDB");
             if(weatherDB.exists("city")) {
-                Log.d("tag", "exists");
+                Log.d("tag", "already exists");
                 CityList cityList = weatherDB.getObject("city", CityList.class);
                 ArrayList <City> cities = cityList.cities;
                 City city = cities.get(0);
-                if(city == null) {
-                    Log.d("tag", "cities is null");
-                }
-                Log.d("tag", Objects.requireNonNull(city).cityName);
                 cityName = city.cityName;
                 latitude = city.latitudeValue;
                 longitude = city.longitudeValue;
@@ -216,16 +297,17 @@ public class MainActivity extends AppCompatActivity {
                 startRecyclerView();
                 setUIThread();
             } else {
-                Log.d("tag", "does not exist");
+                Log.d("tag", "first time");
                 fusedLocationClient.getLastLocation().addOnSuccessListener(this, new OnSuccessListener<Location>() {
                     @Override
                     public void onSuccess(Location location) {
                         if (location != null) {
+                            Log.d("tag", "location is not null");
                             longitude = location.getLongitude();
                             latitude = location.getLatitude();
                             latitude = round(latitude);
                             longitude = round(longitude);
-
+                            Log.d("tag", "" + latitude);
                             cityName = getLocationName(latitude, longitude);
                             try {
                                 DB weatherDB = DBFactory.open(MainActivity.this,"weatherDB");
@@ -242,6 +324,8 @@ public class MainActivity extends AppCompatActivity {
                             setValuesByCity(cityName);
                             startRecyclerView();
                             setUIThread();
+                        } else {
+                            Log.d("tag", "location is null");
                         }
                     }
                 });
@@ -342,9 +426,13 @@ public class MainActivity extends AppCompatActivity {
 
     private void startRecyclerView() {
         recyclerView = findViewById(R.id.forecastRecyclerView);
+        recyclerView.hasFixedSize();
         WeatherAdapter adapter = new WeatherAdapter(this, weatherList, Glide.with(this), false);
         recyclerView.setAdapter(adapter);
-        recyclerView.addItemDecoration(new DividerItemDecoration(getApplicationContext(), DividerItemDecoration.HORIZONTAL));
+        if(!recViewDecorated) {
+            recyclerView.addItemDecoration(new DividerItemDecoration(getApplicationContext(), DividerItemDecoration.HORIZONTAL));
+        }
+        recViewDecorated = true;
     }
 
     private void getWeather(String url) {
@@ -399,19 +487,22 @@ public class MainActivity extends AppCompatActivity {
 
     private void getPref() {
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
-        if(sp.getBoolean("theme",true) && !sp.getBoolean("personal_settings",true)) {
-            setBlackTheme();
-        } else {
-            if(!sp.getBoolean("personal_settings",true)) {
-                setWhiteTheme();
+        boolean flag = sp.getBoolean("background", true);
+        if(!flag) {
+            if(sp.getBoolean("theme",true) && !sp.getBoolean("personal_settings",true)) {
+                setBlackTheme();
+            } else {
+                if(!sp.getBoolean("personal_settings",true)) {
+                    setWhiteTheme();
+                }
             }
-        }
 
-        if(sp.getBoolean("personal_settings",true)) {
-            int background_color = sp.getInt("background_color_picker",Color.GRAY), bottom_view_color = sp.getInt("menu_color_picker",Color.GRAY);
-            View mainView = findViewById(R.id.activityMain);
-            mainView.setBackgroundColor(background_color);
-            navigationView.setBackgroundColor(bottom_view_color);
+            if(sp.getBoolean("personal_settings",true)) {
+                int background_color = sp.getInt("background_color_picker",Color.GRAY), bottom_view_color = sp.getInt("menu_color_picker",Color.GRAY);
+                View mainView = findViewById(R.id.activityMain);
+                mainView.setBackgroundColor(background_color);
+                navigationView.setBackgroundColor(bottom_view_color);
+            }
         }
     }
 
@@ -438,57 +529,86 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void getForecastOkHttp(final String url) {
-        OkHttpClient client = new OkHttpClient();
-        okhttp3.Request request = new okhttp3.Request.Builder().url(url).build();
-        client.newCall(request).enqueue(new Callback() {
+        AsyncTask.execute(new Runnable() {
             @Override
-            public void onFailure(@NotNull Call call, @NotNull IOException e) {
-                e.printStackTrace();
-            }
+            public void run() {
+                OkHttpClient client = new OkHttpClient();
+                okhttp3.Request request = new okhttp3.Request.Builder().url(url).build();
+                try {
+                    Response response = client.newCall(request).execute();
+                    String mResponse = Objects.requireNonNull(response.body()).string();
+                    JSONObject mObj = new JSONObject(mResponse);
+                    if(mObj.getInt("cod") != 401 && mObj.getInt("cod") != 400) {
+                        JSONArray array = mObj.getJSONArray("list");
+                        weatherList.clear();
+                        for (int i = 0; i < array.length(); i++) {
+                            JSONObject object = array.getJSONObject(i);
+                            JSONObject main = object.getJSONObject("main"), wind = object.getJSONObject("wind");
+                            JSONArray weatherArray = object.getJSONArray("weather");
+                            Weather weather = new Weather();
+                            double temp = Math.round(main.getDouble("temp")), speed = Math.round(wind.getDouble("speed"));
+                            String date = object.getString("dt_txt");
+                            weather.setImagePath(imageUrl + weatherArray.getJSONObject(0).getString("icon") + "@2x.png");
+                            weather.setTemp((int) temp);
+                            weather.setWind((int) speed);
+                            weather.setDate(date);
 
-            @Override
-            public void onResponse(@NotNull Call call, @NotNull okhttp3.Response response) throws IOException {
-                if(response.isSuccessful()) {
-                    final String mResponse = Objects.requireNonNull(response.body()).string();
-                    try {
-                        JSONObject mObj = new JSONObject(mResponse);
-                        if(mObj.getInt("cod") != 401 && mObj.getInt("cod") != 400) {
-                            JSONArray array = mObj.getJSONArray("list");
-                            weatherList.clear();
-                            for (int i = 0; i < array.length(); i++) {
-                                JSONObject object = array.getJSONObject(i);
-                                JSONObject main = object.getJSONObject("main"), wind = object.getJSONObject("wind");
-                                JSONArray weatherArray = object.getJSONArray("weather");
-                                Weather weather = new Weather();
-                                double temp = Math.round(main.getDouble("temp")), speed = Math.round(wind.getDouble("speed"));
-                                String date = object.getString("dt_txt");
-                                weather.setImagePath(imageUrl + weatherArray.getJSONObject(0).getString("icon") + "@2x.png");
-                                weather.setTemp((int) temp);
-                                weather.setWind((int) speed);
-                                weather.setDate(date);
-
-                                weatherList.add(weather);
-                            }
-                            MainActivity.this.runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    List <Weather> list = refactorCurDayWeatherList(weatherList);
-                                    startCurDatRecView(list);
-                                    refactorWeatherList();
-                                    startRecyclerView();
-                                }
-                            });
-                            setUIThread();
+                            weatherList.add(weather);
                         }
-                    } catch (JSONException e) {
-                        e.printStackTrace();
+                        MainActivity.this.runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                List <Weather> list = refactorCurDayWeatherList(weatherList);
+                                startCurDatRecView(list);
+                                refactorWeatherList();
+                                startRecyclerView();
+                            }
+                        });
+                        setUIThread();
                     }
+                } catch (IOException | JSONException e) {
+                    e.printStackTrace();
                 }
             }
         });
     }
 
-    public void addCity(View view) {
+    public void chooseCity(View view) throws SnappydbException {
+        final Spinner spinner = new Spinner(this);
+        ArrayList <City> cities;
+        DB db = DBFactory.open(this, "weatherDB");
+        CityList cityList = db.getObject("city", CityList.class);
+        cities = cityList.cities;
+
+        String[] strings = new String[cities.size()];
+        for(int i = 0;i < strings.length;i++) {
+            strings[i] = cities.get(i).cityName;
+        }
+        spinner.setAdapter(new ArrayAdapter<>(this, R.layout.support_simple_spinner_dropdown_item, strings));
+        final List<City> finalCities = cities;
+        AlertDialog.Builder builder = new AlertDialog.Builder(this)
+                .setTitle("Выбрать город")
+                .setView(spinner)
+                .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        setWeatherByCall(finalCities.get((int) spinner.getSelectedItemId()).cityName);
+                    }
+                })
+                .setNegativeButton("Отмена", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {}
+                });
+        builder.show();
+    }
+
+    public void addCity(View view) throws SnappydbException {
+        CityList cityList;
+        final ArrayList <City> cities;
+        final DB weatherDB = DBFactory.open(this, "weatherDB");
+        cityList = weatherDB.getObject("city", CityList.class);
+        cities = cityList.cities;
+
         final EditText editText = new EditText(this);
         AlertDialog.Builder builder = new AlertDialog.Builder(this)
                 .setTitle("Добавить город")
@@ -497,7 +617,22 @@ public class MainActivity extends AppCompatActivity {
                 .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-
+                        cityExist(editText.getText().toString().trim());
+                        TimerTask task = new TimerTask() {
+                            @Override
+                            public void run() {
+                                if(exist) {
+                                    cities.add(new City(editText.getText().toString().trim(), 0, 0));
+                                    try {
+                                        weatherDB.put("city", new CityList(cities));
+                                    } catch (SnappydbException e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+                            }
+                        };
+                        Timer timer = new Timer();
+                        timer.schedule(task, 1500);
                     }
                 })
                 .setNegativeButton("Отмена", new DialogInterface.OnClickListener() {
@@ -505,6 +640,7 @@ public class MainActivity extends AppCompatActivity {
                     public void onClick(DialogInterface dialog, int which) {}
                 });
         builder.show();
+        exist = false;
     }
 
     private void setBackground() {
@@ -540,9 +676,13 @@ public class MainActivity extends AppCompatActivity {
 
     private void startCurDatRecView(List <Weather> weatherList) {
         RecyclerView curDayRecyclerView = findViewById(R.id.currentDayRecyclerView);
+        curDayRecyclerView.hasFixedSize();
         WeatherAdapter adapter = new WeatherAdapter(this, weatherList, Glide.with(this), true);
         curDayRecyclerView.setAdapter(adapter);
-        curDayRecyclerView.addItemDecoration(new DividerItemDecoration(getApplicationContext(), DividerItemDecoration.HORIZONTAL));
+        if(!curDayRecViewDecorated) {
+            curDayRecyclerView.addItemDecoration(new DividerItemDecoration(getApplicationContext(), DividerItemDecoration.HORIZONTAL));
+        }
+        curDayRecViewDecorated = true;
     }
 
     private void refactorWeatherList() {
@@ -552,9 +692,7 @@ public class MainActivity extends AppCompatActivity {
             for(int j = i;j < weatherList.size();j++) {
                 Weather weather2 = weatherList.get(j);
                 String s1 = weather1.getDate().substring(0,10), s2 = weather2.getDate().substring(0,10);
-                Log.d("tag", s1 + " " + s2);
                 if(s1.equals(s2)) {
-                    Log.d("tag", "equals");
                     newWeatherList.remove(weather2);
                 }
             }
@@ -600,5 +738,32 @@ public class MainActivity extends AppCompatActivity {
         Date date = Calendar.getInstance().getTime();
         @SuppressLint("SimpleDateFormat") DateFormat df = new SimpleDateFormat("h:mm a");
         return df.format(date);
+    }
+
+    private void cityExist(final String city) {
+        AsyncTask.execute(new Runnable() {
+            @Override
+            public void run() {
+                String url = firstPartOfUrl + city + secondPartOfUrl + API_KEY;
+                OkHttpClient client = new OkHttpClient();
+                Request request = new Request.Builder().url(url).build();
+                String mResponse;
+                try {
+                    Response response = client.newCall(request).execute();
+                    mResponse = Objects.requireNonNull(response.body()).string();
+                    JSONObject object = new JSONObject(mResponse);
+                    exist = object.getInt("cod") == 200;
+                } catch (IOException | JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+    }
+
+
+    private boolean checkWifiConnection() {
+        final WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        assert wifiManager != null;
+        return wifiManager.isWifiEnabled();
     }
 }

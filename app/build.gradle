@@ -86,4 +86,6 @@ dependencies {
     implementation  'com.android.tools.build:gradle:1.2.3'
 
     compile 'com.getbase:floatingactionbutton:1.10.1'
+
+    implementation 'pub.devrel:easypermissions:3.0.0'
 }

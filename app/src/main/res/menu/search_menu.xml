@@ -8,4 +8,11 @@
         app:actionViewClass="androidx.appcompat.widget.SearchView"
         app:showAsAction="ifRoom|withText"
         />
+
+    <item
+        android:id="@+id/renew_item"
+        android:title="Обновить"
+        android:icon="@drawable/ic_autorenew_black_24dp"
+        app:showAsAction="always"
+        />
 </menu>
