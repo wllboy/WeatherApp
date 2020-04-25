@@ -170,11 +170,17 @@
         app:fab_expandDirection="down"
         >
         <com.getbase.floatingactionbutton.FloatingActionButton
-            android:id="@+id/addCityActionButton"
+            android:id="@+id/chooseCityActionButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             app:fab_title="Добавить город"
             app:fab_icon="@drawable/ic_location_city_black_24dp"
+            android:onClick="chooseCity"
+            />
+        <com.getbase.floatingactionbutton.FloatingActionButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:fab_icon="@drawable/ic_plus_one_black_24dp"
             android:onClick="addCity"
             />
     </com.getbase.floatingactionbutton.FloatingActionsMenu>

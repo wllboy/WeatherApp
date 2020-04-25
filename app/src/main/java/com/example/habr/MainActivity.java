@@ -507,7 +507,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setWhiteTheme() {
-        View mainView = findViewById(R.id.activityMain);
+        View mainView = findViewById(R.id.bgRelativeLayout);
         mainView.setBackgroundColor(Color.WHITE);
         tempTextView.setTextColor(Color.BLACK);
         celsiusTextView.setTextColor(Color.BLACK);
@@ -516,7 +516,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setBlackTheme() {
-        View mainView = findViewById(R.id.activityMain);
+        View mainView = findViewById(R.id.bgRelativeLayout);
         mainView.setBackgroundColor(Color.GRAY);
         tempTextView.setTextColor(Color.WHITE);
         celsiusTextView.setTextColor(Color.WHITE);
